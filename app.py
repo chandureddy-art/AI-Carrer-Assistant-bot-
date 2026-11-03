@@ -31,11 +31,12 @@ def extract_resume_text(uploaded_file):
 
 # ---------------- MAIN TABS ----------------
 
-chat_tab, resume_tab, jobs_tab, interview_tab = st.tabs([
+chat_tab, resume_tab, jobs_tab, interview_tab, skill_tab = st.tabs([
     "💬 AI Chatbot",
     "📄 Resume Analyzer",
     "💼 Job Recommendations",
-    "🎯 Interview Preparation"
+    "🎯 Interview Preparation",
+    "📊 Skills Development"
 ])
 
 
@@ -480,3 +481,127 @@ with interview_tab:
 
                     st.subheader("Your Interview Feedback")
                     st.markdown(feedback)
+                    
+# ==================================================
+# FEATURE 5: SKILL GAP ANALYZER
+# ==================================================
+
+with skill_tab:
+
+    st.header("📊 AI Skill Gap Analyzer")
+
+    st.write(
+        "Discover which skills you have and which skills "
+        "you need to learn for your dream job."
+    )
+
+    target_role = st.text_input(
+        "Enter your target job role",
+        placeholder="Example: Generative AI Engineer"
+    )
+
+    current_skills = st.text_area(
+        "Enter your current skills",
+        placeholder="Example: Python, Java, SQL, HTML, Communication"
+    )
+
+    skill_level = st.selectbox(
+        "Select your current skill level",
+        [
+            "Beginner",
+            "Intermediate",
+            "Advanced"
+        ]
+    )
+
+    education = st.text_input(
+        "Enter your qualification",
+        placeholder="Example: B.Tech in Electronics and Communication"
+    )
+
+    learning_hours = st.selectbox(
+        "How much time can you study daily?",
+        [
+            "1 hour",
+            "2 hours",
+            "3 hours",
+            "4 hours",
+            "More than 4 hours"
+        ]
+    )
+
+    if st.button("Analyze My Skill Gap", type="primary"):
+
+        if not target_role.strip():
+
+            st.warning("Please enter your target job role.")
+
+        elif not current_skills.strip():
+
+            st.warning("Please enter your current skills.")
+
+        else:
+
+            prompt = f"""
+            You are an expert career mentor and technical trainer.
+
+            Analyze the skill gap of this candidate.
+
+            CANDIDATE DETAILS:
+
+            Target Job Role: {target_role}
+            Current Skills: {current_skills}
+            Current Skill Level: {skill_level}
+            Qualification: {education}
+            Daily Learning Time: {learning_hours}
+
+            Prepare a detailed skill gap report using these sections:
+
+            1. CURRENT SKILLS
+            List and explain the candidate's existing skills.
+
+            2. REQUIRED SKILLS
+            List the important skills generally required
+            for the target job role.
+
+            3. MISSING SKILLS
+            Identify skills the candidate has not mentioned.
+            Do not assume that an unmentioned skill is definitely absent.
+
+            4. SKILL PRIORITY
+            Divide skills into:
+            - High priority
+            - Medium priority
+            - Low priority
+
+            5. LEARNING ROADMAP
+            Give a beginner-friendly learning order.
+            Explain what to study first and next.
+
+            6. 30-DAY LEARNING PLAN
+            Create a weekly plan for four weeks.
+            Consider the candidate's available daily study time.
+
+            7. PRACTICAL PROJECT IDEAS
+            Suggest three beginner-friendly projects
+            related to the target job role.
+
+            8. FINAL CAREER ADVICE
+            Explain what the candidate should focus on
+            to become job-ready.
+
+            IMPORTANT:
+            - Use simple English.
+            - Keep advice realistic for a fresher.
+            - Do not invent the candidate's skills.
+            - Distinguish between skills not mentioned
+              and skills confirmed to be missing.
+            """
+
+            with st.spinner("AI is analyzing your skill gap..."):
+
+                result = ask_gemini(prompt)
+
+            st.subheader("Your Personalized Skill Gap Report")
+
+            st.markdown(result)
