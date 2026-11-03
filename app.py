@@ -1,72 +1,110 @@
 import streamlit as st
+from pypdf import PdfReader
 from ai_engine import ask_gemini
 
-# Page configuration
 st.set_page_config(
     page_title="AI Career Assistant",
-    page_icon="🚀",
+    page_icon="🤖",
     layout="wide"
 )
 
-# Application heading
-st.title("🚀 AI Career Assistant")
-st.subheader("Your Personal AI Career Guide")
+st.title("🤖 AI Career Assistant")
+st.write("Your personal AI assistant for career growth.")
 
-st.write(
-    "Get help with resumes, interviews, skills, "
-    "career paths and job preparation."
-)
+chat_tab, resume_tab = st.tabs(["💬 AI Chatbot", "📄 Resume Analyzer"])
 
-# Sidebar
-with st.sidebar:
-    st.title("Career Assistant")
-    st.write("Powered by Gemini AI")
+# ---------------- CHATBOT ----------------
+with chat_tab:
+    st.header("Ask your career questions")
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
     if st.button("Clear Chat"):
         st.session_state.messages = []
         st.rerun()
 
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-# Welcome message
-if not st.session_state.messages:
-    st.info(
-        "Welcome! Ask me anything about your career."
+    user_question = st.chat_input("Ask me anything about your career...")
+
+    if user_question:
+        st.session_state.messages.append(
+            {"role": "user", "content": user_question}
+        )
+
+        with st.chat_message("user"):
+            st.markdown(user_question)
+
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                answer = ask_gemini(user_question)
+                st.markdown(answer)
+
+        st.session_state.messages.append(
+            {"role": "assistant", "content": answer}
+        )
+
+
+# ---------------- RESUME ANALYZER ----------------
+with resume_tab:
+    st.header("📄 AI Resume Analyzer")
+    st.write("Upload your resume in PDF format to receive AI-powered feedback.")
+
+    uploaded_file = st.file_uploader(
+        "Choose your resume PDF",
+        type=["pdf"]
     )
 
-# Display previous messages
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+    if uploaded_file is not None:
+        st.success("Resume uploaded successfully!")
 
-# User input
-user_question = st.chat_input(
-    "Ask your career-related question..."
-)
+        if st.button("Analyze My Resume"):
+            try:
+                pdf_reader = PdfReader(uploaded_file)
 
-if user_question:
+                resume_text = ""
 
-    # Save user message
-    st.session_state.messages.append({
-        "role": "user",
-        "content": user_question
-    })
+                for page in pdf_reader.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        resume_text += page_text + "\n"
 
-    with st.chat_message("user"):
-        st.markdown(user_question)
+                if not resume_text.strip():
+                    st.error(
+                        "I couldn't read text from this PDF. "
+                        "Please upload a text-based PDF rather than a scanned image."
+                    )
+                else:
+                    prompt = f"""
+                    You are an experienced resume reviewer and career advisor.
 
-    # Generate AI response
-    with st.chat_message("assistant"):
+                    Analyze the following resume and give feedback in simple English.
 
-        with st.spinner("AI is thinking..."):
-            response = ask_gemini(user_question)
+                    Include these sections:
 
-        st.markdown(response)
+                    1. Resume Summary
+                    2. Key Strengths
+                    3. Weaknesses or Missing Information
+                    4. Technical Skills Found
+                    5. Skills the Candidate Could Improve
+                    6. Suggestions to Improve the Resume
+                    7. Suitable Entry-Level Job Roles
 
-    # Save AI response
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": response
-    })
+                    Be honest, practical, and supportive.
+                    Do not invent qualifications or experience.
+
+                    RESUME TEXT:
+                    {resume_text[:20000]}
+                    """
+
+                    with st.spinner("AI is analyzing your resume..."):
+                        result = ask_gemini(prompt)
+
+                    st.subheader("Your Resume Analysis")
+                    st.markdown(result)
+
+            except Exception as e:
+                st.error(f"Something went wrong while reading the PDF: {e}")
